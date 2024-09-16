@@ -36,6 +36,24 @@
       "type": "check",
       "default": true
     },
+    "cpp.gen.genDoc": {
+      "text": "Generate doc comments",
+      "description": "Generate doc comments",
+      "type": "check",
+      "default": true
+    },
+    "cpp.gen.genFileHeaderComment": {
+      "text": "Generate file header comment",
+      "description": "Generate file header comment",
+      "type": "check",
+      "default": true
+    },
+    "cpp.gen.genOldFileHeaderComment": {
+      "text": "Generate the old file header comment (v.0.9.3)",
+      "description": "Generate old file header comment",
+      "type": "check",
+      "default": false
+    },
     "cpp.rev": {
       "text": "C++ Reverse Engineering",
       "type": "section"

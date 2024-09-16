@@ -31,6 +31,9 @@ function getGenOptions() {
     useVector: app.preferences.get("cpp.gen.useVector"),
     includeHeader: app.preferences.get("cpp.gen.includeHeader"),
     genCpp: app.preferences.get("cpp.gen.genCpp"),
+    genDoc: app.preferences.get("cpp.gen.genDoc"),
+    genFileHeaderDoc: app.preferences.get("cpp.gen.genFileHeaderComment"),
+    genOldFileHeaderDoc: app.preferences.get("cpp.gen.genOldFileHeaderComment"),
   };
 }
 

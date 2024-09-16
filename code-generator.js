@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2014-2018 MKLab. All rights reserved.
- * Copyright (c) 2014 Sebastian Schleemilch.
+ * Copyright (c) 2014 Sebastian Schleemilch
+ * Copyright (c) 2024 Andrea Sorrentino
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -52,25 +53,35 @@ class CppCodeGenerator {
     this.basePath = basePath;
 
     var doc = "";
-    if (
-      app.project.getProject().name &&
-      app.project.getProject().name.length > 0
-    ) {
-      doc += "\nProject " + app.project.getProject().name;
+    // If "generate file header comment" option is enabled
+    if(app.preferences.get("cpp.gen.genFileHeaderComment")){
+        // It uses as file header comment the project documentation field
+        // Otherwise, if specified inside the preferences, uses the old one
+        if(app.preferences.get("cpp.gen.genOldFileHeaderComment")){
+            if (
+              app.project.getProject().name &&
+              app.project.getProject().name.length > 0
+            ) {
+              doc += "\nProject " + app.project.getProject().name;
+            }
+            if (
+              app.project.getProject().author &&
+              app.project.getProject().author.length > 0
+            ) {
+              doc += "\n@author " + app.project.getProject().author;
+            }
+            if (
+              app.project.getProject().version &&
+              app.project.getProject().version.length > 0
+            ) {
+              doc += "\n@version " + app.project.getProject().version;
+              copyrightHeader = this.getHeaderDocuments(doc);
+            }
+        }
+        else copyrightHeader = this.getHeaderDocuments(app.project.getProject().documentation);
+      
     }
-    if (
-      app.project.getProject().author &&
-      app.project.getProject().author.length > 0
-    ) {
-      doc += "\n@author " + app.project.getProject().author;
-    }
-    if (
-      app.project.getProject().version &&
-      app.project.getProject().version.length > 0
-    ) {
-      doc += "\n@version " + app.project.getProject().version;
-    }
-    copyrightHeader = this.getDocuments(doc);
+    else copyrightHeader = "";
   }
 
   /**
@@ -95,7 +106,7 @@ class CppCodeGenerator {
     this.genOptions = options;
 
     var getFilePath = (extenstions) => {
-      var absPath = basePath + "/" + elem.name + ".";
+      var absPath = basePath + "/" + elem.name.replace(/\s+/g, '_').toLowerCase() + ".";
       if (extenstions === _CPP_CODE_GEN_H) {
         absPath += _CPP_CODE_GEN_H;
       } else {
@@ -114,7 +125,7 @@ class CppCodeGenerator {
       codeWriter.writeLine(
         modifierStr +
           "enum " +
-          elem.name +
+          elem.name.replace(/\s+/g, '') +
           " { " +
           elem.literals.map((lit) => lit.name).join(", ") +
           " };",
@@ -132,10 +143,10 @@ class CppCodeGenerator {
             item instanceof type.UMLAssociationEnd
           ) {
             // if write member variable
-            codeWriter.writeLine(cppCodeGen.getMemberVariable(item));
-          } else if (item instanceof type.UMLOperation) {
+            codeWriter.writeLine(cppCodeGen.getMemberVariable(item, i));
+          } else if (item instanceof type.UMLOperation || item.hasOwnProperty("objType")) {
             // if write method
-            codeWriter.writeLine(cppCodeGen.getMethod(item, false));
+            codeWriter.writeLine(cppCodeGen.getMethod(item, i, false));
           } else if (item instanceof type.UMLClass) {
             writeClassHeader(codeWriter, item, cppCodeGen);
           } else if (item instanceof type.UMLEnumeration) {
@@ -156,7 +167,7 @@ class CppCodeGenerator {
           var generalization = genList[i];
           // public AAA, private BBB
           term.push(
-            generalization.visibility + " " + generalization.target.name,
+            generalization.visibility + " " + generalization.target.name.replace(/\s+/g, ''),
           );
         }
         inheritString += term.join(", ");
@@ -175,16 +186,18 @@ class CppCodeGenerator {
         var asso = associations[i];
         if (
           asso.end1.reference === elem &&
-          asso.end2.navigable === true &&
-          asso.end2.name.length !== 0
+          asso.end2.navigable == "navigable"
         ) {
           memberAttr.push(asso.end2);
         } else if (
           asso.end2.reference === elem &&
-          asso.end1.navigable === true &&
-          asso.end1.name.length !== 0
+          asso.end1.navigable == "navigable"
         ) {
           memberAttr.push(asso.end1);
+        }
+        // Check if the association is "aggregation" or "composition"
+        else if (asso.end2.reference === elem && (asso.end2.aggregation == "shared" || asso.end2.aggregation == "composite")) {
+            memberAttr.push(asso.end1);
         }
       }
 
@@ -201,8 +214,32 @@ class CppCodeGenerator {
         }
       }
 
+      // Add methods from the interface (override)
+      for(i = 0; i < elem.ownedElements.length; i++) {
+        var element = elem.ownedElements[i];
+        if(element instanceof type.UMLInterfaceRealization)
+          for(var j = 0; j < element.target.operations.length; j++){
+            var interfaceMethod = { ...element.target.operations[j] }; // you should make a copy, in order to not change the interface methods.
+            interfaceMethod.isAbstract = false;  // Interfaces have abstracts methods, but the class should have a concrete method version.
+
+            // Since the copy of the object doesn't use the same prototype, the cloned object is not of type "UMLOperation"
+            // So we add our objType indentifier. If getMethod() finds that the object is not an instance of "UMLOperation"
+            // it will check for the property "objType". We don't use factory.create() from StarUML API, because it creates new object inside the project.
+            interfaceMethod.objType = "UMLOperation";   
+            methodList.push(interfaceMethod);
+          }
+      }
+
+      // Add the class description (documentation) before the class header declaration.
+      if ((typeof elem.documentation === "string") && elem.documentation != "") {
+        // We should check if doc is enabled, otherwise getDocuments returns "" and it will write a new file.
+        if(app.preferences.get("cpp.gen.genDoc")) codeWriter.writeLine(cppCodeGen.getDocuments(elem.documentation));
+      }
+      
+
       var allMembers = memberAttr.concat(methodList).concat(innerElement);
       var classfiedAttributes = cppCodeGen.classifyVisibility(allMembers);
+      
       var finalModifier = "";
       if (elem.isFinalSpecialization === true || elem.isLeaf === true) {
         finalModifier = " final ";
@@ -211,30 +248,50 @@ class CppCodeGenerator {
       if (templatePart.length > 0) {
         codeWriter.writeLine(templatePart);
       }
-
-      codeWriter.writeLine(
-        "class " + elem.name + finalModifier + writeInheritance(elem) + " {",
-      );
-      if (classfiedAttributes._public.length > 0) {
-        codeWriter.writeLine("public: ");
-        codeWriter.indent();
-        write(classfiedAttributes._public);
-        codeWriter.outdent();
+      
+      // Check if it's a C struct (if the UML class has a <<struct>> stereotype)
+      // So generate a strcut
+      if(elem.stereotype == "struct"){
+        codeWriter.writeLine("typedef struct {");
+        if (classfiedAttributes._public.length > 0) {
+          codeWriter.indent();
+          write(classfiedAttributes._public);
+          codeWriter.outdent();
+        }
+        codeWriter.writeLine("} " + elem.name.replace(/\s+/g, '') + ";");
       }
-      if (classfiedAttributes._protected.length > 0) {
-        codeWriter.writeLine("protected: ");
-        codeWriter.indent();
-        write(classfiedAttributes._protected);
-        codeWriter.outdent();
+      else {
+        codeWriter.writeLine(
+        "class " + elem.name.replace(/\s+/g, '') + finalModifier + writeInheritance(elem) + " {",
+        );
+        if (classfiedAttributes._private.length > 0) {
+          codeWriter.indent();
+          codeWriter.writeLine("private: ");
+          codeWriter.indent();
+          write(classfiedAttributes._private);
+          codeWriter.outdent();
+          codeWriter.outdent();
+        }
+        if (classfiedAttributes._protected.length > 0) {
+          codeWriter.indent();
+          codeWriter.writeLine("protected: ");
+          codeWriter.indent();
+          write(classfiedAttributes._protected);
+          codeWriter.outdent();
+          codeWriter.outdent();
+        }
+        if (classfiedAttributes._public.length > 0) {
+          codeWriter.indent();
+          codeWriter.writeLine("public: ");
+          codeWriter.indent();
+          write(classfiedAttributes._public);
+          codeWriter.outdent();
+          codeWriter.outdent();
+        }
+  
+        codeWriter.writeLine("};");
       }
-      if (classfiedAttributes._private.length > 0) {
-        codeWriter.writeLine("private: ");
-        codeWriter.indent();
-        write(classfiedAttributes._private);
-        codeWriter.outdent();
-      }
-
-      codeWriter.writeLine("};");
+      
     };
 
     var writeClassBody = (codeWriter, elem, cppCodeGen) => {
@@ -243,9 +300,9 @@ class CppCodeGenerator {
       var writeClassMethod = (elemList) => {
         for (i = 0; i < elemList._public.length; i++) {
           item = elemList._public[i];
-          if (item instanceof type.UMLOperation) {
+          if (item instanceof type.UMLOperation || item.hasOwnProperty("objType")) {
             // if write method
-            codeWriter.writeLine(cppCodeGen.getMethod(item, true));
+            codeWriter.writeLine(cppCodeGen.getMethod(item, i, true));
           } else if (item instanceof type.UMLClass) {
             writeClassBody(codeWriter, item, cppCodeGen);
           }
@@ -253,9 +310,9 @@ class CppCodeGenerator {
 
         for (i = 0; i < elemList._protected.length; i++) {
           item = elemList._protected[i];
-          if (item instanceof type.UMLOperation) {
+          if (item instanceof type.UMLOperation || item.hasOwnProperty("objType")) {
             // if write method
-            codeWriter.writeLine(cppCodeGen.getMethod(item, true));
+            codeWriter.writeLine(cppCodeGen.getMethod(item, i, true));
           } else if (item instanceof type.UMLClass) {
             writeClassBody(codeWriter, item, cppCodeGen);
           }
@@ -263,9 +320,9 @@ class CppCodeGenerator {
 
         for (i = 0; i < elemList._private.length; i++) {
           item = elemList._private[i];
-          if (item instanceof type.UMLOperation) {
+          if (item instanceof type.UMLOperation || item.hasOwnProperty("objType")) {
             // if write method
-            codeWriter.writeLine(cppCodeGen.getMethod(item, true));
+            codeWriter.writeLine(cppCodeGen.getMethod(item, i, true));
           } else if (item instanceof type.UMLClass) {
             writeClassBody(codeWriter, item, cppCodeGen);
           }
@@ -274,11 +331,12 @@ class CppCodeGenerator {
 
       // parsing class
       var methodList = cppCodeGen.classifyVisibility(elem.operations.slice(0));
-      var docs = elem.name + " implementation\n\n";
+      /* I don't want this inside the cpp file.
+      var docs = this->elem.name + " implementation\n\n";
       if (typeof elem.documentation === "string") {
         docs += elem.documentation;
       }
-      codeWriter.writeLine(cppCodeGen.getDocuments(docs));
+      codeWriter.writeLine(cppCodeGen.getDocuments(docs));*/
       writeClassMethod(methodList);
 
       // parsing nested class
@@ -298,8 +356,13 @@ class CppCodeGenerator {
     var fullPath, file;
 
     // Package -> as namespace or not
+    // Since I have "Package1.Subpackage" inside my StarUML project (in order to show more info about a module inside UML Class Diagram)
+    // we need to remove the parent packages from the name, when generating the package folder.
     if (elem instanceof type.UMLPackage) {
-      fullPath = path.join(basePath, elem.name);
+      var packageName = elem.name;
+      var lastDotIndex = elem.name.lastIndexOf(".");
+      if(lastDotIndex > 0) packageName = elem.name.substring(lastDotIndex + 1);
+      fullPath = path.join(basePath, packageName);
       fs.mkdirSync(fullPath);
       if (Array.isArray(elem.ownedElements)) {
         elem.ownedElements.forEach((child) => {
@@ -351,23 +414,25 @@ class CppCodeGenerator {
    * @return {string}
    */
   writeHeaderSkeletonCode(elem, options, funct) {
-    var headerString = "_" + elem.name.toUpperCase() + "_H";
+    var elemName = elem.name.replace(/\s+/g, '_').replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();  // Changes "My SuperClass" into "My_Super_Class".
+    elemName = elemName[0] + elemName.slice(1).replace(/[A-Z]/g, letter => '_'); // Changes "My_Super_Class" into "MY_SUPER_CLASS"
+    var headerString = elemName.toUpperCase() + "_H";
     var codeWriter = new codegen.CodeWriter(this.getIndentString(options));
     var includePart = this.getIncludePart(elem);
-    codeWriter.writeLine(copyrightHeader);
-    codeWriter.writeLine();
+    if(copyrightHeader != ""){
+      codeWriter.writeLine(copyrightHeader);
+    }
     codeWriter.writeLine("#ifndef " + headerString);
     codeWriter.writeLine("#define " + headerString);
     codeWriter.writeLine();
-
+    
     if (includePart.length > 0) {
       codeWriter.writeLine(includePart);
-      codeWriter.writeLine();
     }
     funct(codeWriter, elem, this);
 
     codeWriter.writeLine();
-    codeWriter.writeLine("#endif //" + headerString);
+    codeWriter.writeLine("#endif");
     return codeWriter.getData();
   }
 
@@ -382,10 +447,11 @@ class CppCodeGenerator {
    */
   writeBodySkeletonCode(elem, options, funct) {
     var codeWriter = new codegen.CodeWriter(this.getIndentString(options));
-    codeWriter.writeLine(copyrightHeader);
-    codeWriter.writeLine();
-    codeWriter.writeLine('#include "' + elem.name + '.h"');
-    codeWriter.writeLine();
+    if(copyrightHeader != ""){
+      codeWriter.writeLine(copyrightHeader);
+    }
+    codeWriter.writeLine('#include "' + elem.name.replace(/\s+/g, '_').toLowerCase() + '.h"');
+    
     funct(codeWriter, elem, this);
     return codeWriter.getData();
   }
@@ -435,15 +501,15 @@ class CppCodeGenerator {
       while (elem._parent._parent !== null) {
         elementString =
           elementString.length !== 0
-            ? elem.name + "/" + elementString
-            : elem.name;
+            ? elem.name.replace(/\s+/g, '_').toLowerCase() + "/" + elementString
+            : elem.name.replace(/\s+/g, '_').toLowerCase();
         elem = elem._parent;
       }
       while (target._parent._parent !== null) {
         targetString =
           targetString.length !== 0
-            ? target.name + "/" + targetString
-            : target.name;
+            ? target.name.replace(/\s+/g, '_').toLowerCase() + "/" + targetString
+            : target.name.replace(/\s+/g, '_').toLowerCase();
         target = target._parent;
       }
 
@@ -562,11 +628,18 @@ class CppCodeGenerator {
    * @param {Object} elem
    * @return {Object} string
    */
-  getMemberVariable(elem) {
-    if (elem.name.length > 0) {
+  getMemberVariable(elem, index) {
+    // We should check the name.length only if the elem is not a UMLAssociationEnd
+    // because user could create an association without specifing any "end1/end2 name".
+    if (elem.name.length > 0 || elem instanceof type.UMLAssociationEnd) {
       var terms = [];
       // doc
-      var docs = this.getDocuments(elem.documentation);
+      var docs = "";
+
+      // The doc inside an UMLAssociation is used as doc for the member variable derived from the association
+      if(elem instanceof type.UMLAssociationEnd) docs = this.getDocuments(elem._parent.documentation).replace(/\n/g, '\n\t\t');
+      else docs = this.getDocuments(elem.documentation).replace(/\n/g, '\n\t\t');  // doc for a UMLAttribute
+      
       // modifiers
       var _modifiers = this.getModifiers(elem);
       if (_modifiers.length > 0) {
@@ -575,12 +648,28 @@ class CppCodeGenerator {
       // type
       terms.push(this.getType(elem));
       // name
-      terms.push(elem.name);
+      // Check if it's an UMLAssociationEnd.
+      // You should put as variable name the class name (lowerCamelCased) and not the association name.
+      // The member visibility is determined by the value of "end2.visibility" for association and "end1.visibility" for aggregation/composition.
+      if (elem instanceof type.UMLAssociationEnd){
+        var referenceName = elem.reference.name.charAt(0).toLowerCase() + elem.reference.name.slice(1); // convert class name into lowerCaseCamel.
+        referenceName = referenceName.replace(/\s+/g, '');  // removes spaces from the name
+
+        // If multiplicity of association is > 1, add the plural form to the name.
+        if(["0..*", "1..*", "*"].includes(elem.multiplicity.trim())) referenceName += "s";
+        terms.push(referenceName);
+      }
+      else terms.push(elem.name);
+      
       // initial value
       if (elem.defaultValue && elem.defaultValue.length > 0) {
         terms.push("= " + elem.defaultValue);
       }
-      return docs + terms.join(" ") + ";";
+      if(docs != ""){
+          if(index > 0) return "\n\t\t" + docs + terms.join(" ") + ";";
+          else return docs + terms.join(" ") + ";";
+      }
+      return terms.join(" ") + ";";
     }
   }
 
@@ -591,7 +680,7 @@ class CppCodeGenerator {
    * @param {boolean} isCppBody
    * @return {Object} string
    */
-  getMethod(elem, isCppBody) {
+  getMethod(elem, index, isCppBody) {
     if (elem.name.length > 0) {
       var docs = elem.documentation;
       var i;
@@ -616,8 +705,10 @@ class CppCodeGenerator {
         inputParamStrings.push(
           this.getType(inputParam) + " " + inputParam.name,
         );
-        docs += "\n@param " + inputParam.name;
+        docs += "\n@param " + inputParam.name + " " + inputParam.documentation;
       }
+
+      if(returnTypeParam.length > 0 && !isCppBody) docs += "\n@return " + this.getType(returnTypeParam[0]);
 
       methodStr +=
         (returnTypeParam.length > 0
@@ -629,7 +720,7 @@ class CppCodeGenerator {
         var specifier = "";
 
         while (telem._parent instanceof type.UMLClass) {
-          specifier = telem._parent.name + "::" + specifier;
+          specifier = telem._parent.name.replace(/\s+/g, '') + "::" + specifier;
           telem = telem._parent;
         }
 
@@ -641,7 +732,7 @@ class CppCodeGenerator {
 
         methodStr += specifier;
         methodStr += elem.name;
-        methodStr += "(" + inputParamStrings.join(", ") + ")" + " {\n";
+        methodStr += "(" + inputParamStrings.join(", ") + ")" + "{\n";
         if (returnTypeParam.length > 0) {
           var returnType = this.getType(returnTypeParam[0]);
           if (returnType === "boolean" || returnType === "bool") {
@@ -678,7 +769,15 @@ class CppCodeGenerator {
         }
         methodStr += ";";
       }
-      return "\n" + this.getDocuments(docs) + methodStr;
+      if (isCppBody) return "\n" + this.getDocuments(docs) + methodStr;
+      else {
+        var doc = this.getDocuments(docs).replace(/\n/g, '\n\t\t');
+        if(doc != "") {
+          if(index > 0) return "\n\t\t" + doc + methodStr;  // Add a linebreak if the doc is included (to have a better generated code)
+          else return doc + methodStr;
+        }
+        else return methodStr;
+      }
     }
   }
 
@@ -689,15 +788,32 @@ class CppCodeGenerator {
    * @return {Object} string
    */
   getDocuments(text) {
+    if(!app.preferences.get("cpp.gen.genDoc")) return "";
     var docs = "";
     if (typeof text === "string" && text.length !== 0) {
       var lines = text.trim().split("\n");
       docs += "/**\n";
       var i;
       for (i = 0; i < lines.length; i++) {
-        docs += " * " + lines[i] + "\n";
+        docs += "* " + lines[i] + "\n";
       }
-      docs += " */\n";
+      docs += "*/\n";
+    }
+    return docs;
+  }
+
+  // We need this for the header, because the getDocuments() check if the genDoc option is enabled.
+  // TODO: remove getHeaderDocuments() and place app.preferences.get("cpp.gen.genDoc") outside the getDocuments().
+  getHeaderDocuments(text) {
+    var docs = "";
+    if (typeof text === "string" && text.length !== 0) {
+      var lines = text.trim().split("\n");
+      docs += "/**\n";
+      var i;
+      for (i = 0; i < lines.length; i++) {
+        docs += "* " + lines[i] + "\n";
+      }
+      docs += "*/\n";
     }
     return docs;
   }
@@ -748,13 +864,15 @@ class CppCodeGenerator {
    */
   getType(elem) {
     var _type = "void";
+
+    // If it's a UMLAssociationEnd
     if (elem instanceof type.UMLAssociationEnd) {
-      // member variable from association
-      if (
-        elem.reference instanceof type.UMLModelElement &&
-        elem.reference.name.length > 0
-      ) {
-        _type = elem.reference.name;
+      // Use as type the class name for the member variable derived from the association
+      if (elem.reference instanceof type.UMLModelElement && elem.reference.name.length > 0){
+        _type = elem.reference.name.replace(/\s+/g, '');
+
+        // If it's an aggregation or a simple association, add the "*" before the name type (it translates into a pointer)
+        if(elem._parent.end2.aggregation != "composite") _type += "*";
       }
     } else {
       // member variable inside class
@@ -770,13 +888,23 @@ class CppCodeGenerator {
 
     // multiplicity
     if (elem.multiplicity) {
+      if(["0..1"].includes(elem.multiplicity.trim())){
+        // It the multiplicity is "0...1", it means optional partecipation.
+        // So the optionality is implemented using a pointer.
+        
+        // This check avoid to add a double "*" if the association is an aggregation
+        // because the "*" has been already added when checking for aggregation.
+        if(!_type.includes('*')) _type += "*";
+        return _type;
+      }
       if (["0..*", "1..*", "*"].includes(elem.multiplicity.trim())) {
         if (elem.isOrdered === true) {
           _type = "vector<" + _type + ">";
         } else {
           _type = "vector<" + _type + ">";
         }
-      } else if (
+      }
+      else if (
         elem.multiplicity !== "1" &&
         elem.multiplicity.match(/^\d+$/)
       ) {
