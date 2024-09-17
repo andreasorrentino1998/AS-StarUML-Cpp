@@ -3,28 +3,28 @@
 This is a changed version of the C++ extension for StarUML made for my needs (based on v0.9.3).  
 "AS version" stands for "Andrea Sorrentino version".
 
-Added features:
+Features added:
 - Improved code indentation and fixed indentation issues.
-- Removes spaces from class names.
+- Spaces removal from class names.
 - Support to different types of associations (direct association, aggregation and composition).
-- Adds interface methods inside the classes implementing the interface.
-- Adds project documentation at the beginning of each generated source file.
+- Generates interface methods within the classes implementing the interface.
+- Generate project documentation at the beginning of source files (file header comment).
 - Support to structs (UMLClass with a `struct` stereotype is translated into a C struct).
-- Adds documentations to methods parameters and return types.
-- Moved class documentation from implementation file (`.cpp`) to header file (`.h`).
+- Generates documentations for methods parameters and return types.
+- Class documentation moved from implementation file (`.cpp`) to header file (`.h`).
 - Translates a package with the naming convention `Package.Subpackage` into a directory structure `Package/Subpackage`.
-- Enable/Disable documentation generation.
-- Enable/Disable file header comment generation.
+- Option to enable/disable documentation generation.
+- Option to enable/disable file header comment generation.
 
 Changes:
 - Header file macros follow the convention `CLASS_NAME_H` (spaces are replaced with underscores).
 - File names are in snake case (e.g. `class_name.h` / `class_name.cpp`).
-- Class names are in pascal case (e.g. MyClass).
+- Class names are in Pascal case (e.g. MyClass).
 
 Some notes about associations:
 - Direct associations/aggregation translates into a member variable pointer to the linked class.
 - Composition translates into a member variable having as type the linked class.
-- The member variable pointer visibility is deduced from `end2.visibility` for associations  and `end1.visibility` for aggregation/composition.
+- The member variable pointer visibility is deduced from `end2.visibility` for associations  and `end1.visibility` for aggregations/compositions.
 - If multiplicity is `0..*`, `1..*` or `*`, it translates into a C++ vector type. If multiplicity is `0..1` (optional partecipation), it translates into a pointer.
 - When creating an aggregation or composition in StarUML, make sure to trace it from the content to the container, otherwise the generation will fail,
   because it assumes `end1` as content and `end2` as container.
