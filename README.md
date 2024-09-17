@@ -8,9 +8,9 @@ Features added:
 - Spaces removal from class names.
 - Support to different types of associations (direct association, aggregation and composition).
 - Generates interface methods within the classes implementing the interface.
-- Generate project documentation at the beginning of source files (file header comment).
+- Generates project documentation at the beginning of source files (file header comment).
 - Support to structs (UMLClass with a `struct` stereotype is translated into a C struct).
-- Generates documentations for methods parameters and return types.
+- Generates documentation for methods parameters and return types.
 - Class documentation moved from implementation file (`.cpp`) to header file (`.h`).
 - Translates a package with the naming convention `Package.Subpackage` into a directory structure `Package/Subpackage`.
 - Option to enable/disable documentation generation.
