@@ -3,25 +3,54 @@
 This is a changed version of the C++ extension for StarUML made for my needs (based on v0.9.3).  
 "AS version" stands for "Andrea Sorrentino version".
 
-Features added:
-- Improved code indentation and fixed indentation issues.
+**v1.0.1**
+
+Features:
+- Support to destructors (UMLOperation with `<<destructor>>` stereotype).
+- Support to inline methods (UMLOperation with `<<inline>>` stereotype).
+- Classes/structs with `<<example>>` stereotype are not generated.
+- Support to `const` keyword for methods, parameters and return types (`isQuery`/`isReadOnly` properties in StarUML).
+- If the struct have no methods, the `.cpp` files is not generated.
+- For enums with more than 5 elements, each literal is written on a separate line.
+- Generates `#include` statements for C++ standard types used insde the defined classes/structs (`string`, `vector`, `list`, `set`, `size_t`, `int16_t`), and adds comments specifying the types provided by the included libraries. It also generates the `using namespace std;` statement if required.
+- Option to enable/disable the inclusion of libraries for C++ standard types.
+- Option to enable/disable the generation of the `using namespace std;` statement.
+- Option to enable/disable comments about the types provided by the included libraries.
+- Option to use lowercase for directory names.
+
+Fixes:
+- Generates documentation for method return types (description was missing in v1.0.0)
+- Removed an extra space generated after "public:", "protected:", and "private:" strings.
+
+Changes:
+- Removed the `void` type from class constructors.
+- Removed the `return void;` statement in methods implementations with a void return type.
+
+**v1.0.0**
+
+Features:
+- Improved code indentation.
 - Spaces removal from class names.
 - Support to different types of associations (direct association, aggregation and composition).
 - Generates interface methods within the classes implementing the interface.
 - Generates project documentation at the beginning of source files (file header comment).
-- Support to structs (UMLClass with a `struct` stereotype is translated into a C struct).
+- Support to structs (UMLClass with a `<<struct>>` stereotype is translated into a C struct).
 - Generates documentation for methods parameters and return types.
 - Class documentation moved from implementation file (`.cpp`) to header file (`.h`).
-- Translates a package with the naming convention `Package.Subpackage` into a directory structure `Package/Subpackage`.
+- Translates a package with the naming convention `Package.Subpackage` into a directory `Subpackage`.
 - Option to enable/disable documentation generation.
 - Option to enable/disable file header comment generation.
+
+Fixes:
+- Fixed indentation issues
+- Fixed issues related to associations that were not generated.
 
 Changes:
 - Header file macros follow the convention `CLASS_NAME_H` (spaces are replaced with underscores).
 - File names are in snake case (e.g. `class_name.h` / `class_name.cpp`).
-- Class names are in Pascal case (e.g. MyClass).
+- Class names are in Pascal case (e.g. `MyClass`).
 
-Some notes about associations:
+### Some notes about associations
 - Direct associations/aggregation translates into a member variable pointer to the linked class.
 - Composition translates into a member variable having as type the linked class.
 - The member variable pointer visibility is deduced from `end2.visibility` for associations  and `end1.visibility` for aggregations/compositions.

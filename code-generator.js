@@ -103,6 +103,10 @@ class CppCodeGenerator {
   }
 
   generate(elem, basePath, options) {
+    // Element with <<example>> stereotype are not translated into code.
+    // They are supposed to be just example classes, representing how a developer should interact with the modeled system
+    if(elem.stereotype == "example") return;
+
     this.genOptions = options;
 
     var getFilePath = (extenstions) => {
@@ -122,7 +126,16 @@ class CppCodeGenerator {
       for (i = 0; i < modifierList.length; i++) {
         modifierStr += modifierList[i] + " ";
       }
-      codeWriter.writeLine(
+      
+      // If there are more than 5 literals, write them on a single line
+      if(elem.literals.length > 5){
+        var enumStr = "enum " + elem.name.replace(/\s+/g, '') + " {\n\t";
+        enumStr += elem.literals.map((lit) => lit.name).join(",\n\t");
+        enumStr += "\n};";
+        codeWriter.writeLine(enumStr);
+      }
+      // Otherwise write each of them on a separate line.
+      else codeWriter.writeLine(
         modifierStr +
           "enum " +
           elem.name.replace(/\s+/g, '') +
@@ -266,7 +279,7 @@ class CppCodeGenerator {
         );
         if (classfiedAttributes._private.length > 0) {
           codeWriter.indent();
-          codeWriter.writeLine("private: ");
+          codeWriter.writeLine("private:");
           codeWriter.indent();
           write(classfiedAttributes._private);
           codeWriter.outdent();
@@ -274,7 +287,7 @@ class CppCodeGenerator {
         }
         if (classfiedAttributes._protected.length > 0) {
           codeWriter.indent();
-          codeWriter.writeLine("protected: ");
+          codeWriter.writeLine("protected:");
           codeWriter.indent();
           write(classfiedAttributes._protected);
           codeWriter.outdent();
@@ -282,7 +295,7 @@ class CppCodeGenerator {
         }
         if (classfiedAttributes._public.length > 0) {
           codeWriter.indent();
-          codeWriter.writeLine("public: ");
+          codeWriter.writeLine("public:");
           codeWriter.indent();
           write(classfiedAttributes._public);
           codeWriter.outdent();
@@ -362,6 +375,8 @@ class CppCodeGenerator {
       var packageName = elem.name;
       var lastDotIndex = elem.name.lastIndexOf(".");
       if(lastDotIndex > 0) packageName = elem.name.substring(lastDotIndex + 1);
+
+      if(app.preferences.get("cpp.gen.useLowercaseForDirectories")) packageName = packageName.toLowerCase();
       fullPath = path.join(basePath, packageName);
       fs.mkdirSync(fullPath);
       if (Array.isArray(elem.ownedElements)) {
@@ -378,11 +393,14 @@ class CppCodeGenerator {
       );
       // generate class cpp elem_name.cpp
       if (options.genCpp) {
-        file = getFilePath(_CPP_CODE_GEN_CPP);
-        fs.writeFileSync(
-          file,
-          this.writeBodySkeletonCode(elem, options, writeClassBody),
-        );
+         // If it's a C struct and there are no operation defines, doesn't generate the cpp
+        if (!(elem.stereotype == "struct" && elem.operations.length == 0)){
+          file = getFilePath(_CPP_CODE_GEN_CPP);
+          fs.writeFileSync(
+            file,
+            this.writeBodySkeletonCode(elem, options, writeClassBody),
+          );
+        }
       }
     } else if (elem instanceof type.UMLInterface) {
       /*
@@ -427,8 +445,61 @@ class CppCodeGenerator {
     codeWriter.writeLine();
     
     if (includePart.length > 0) {
-      codeWriter.writeLine(includePart);
+      codeWriter.writeLine(includePart);  // #include
     }
+
+    // ======= BEGIN OF INCLUDE PART ==================
+    // Include some common C++ standard type used inside attributes and methods
+    // TODO: actually, it doesn't include 'vector' generate from an association.
+    if(app.preferences.get("cpp.gen.includeCommonCppStdTypes")){
+      const standardTypes = ["string", "vector", "set", "list",  "size_t", "int16_t"];
+      const standardTypesLibraries = ["<string>", "<vector>", "<set>", "<list>", "<stddef.h>", "<cstdint>"]
+      var standardTypesInclude = [false, false, false, false, false, false];
+      for(var i = 0; i < elem.attributes.length; i++){
+        for(var j = 0; j < standardTypes.length; j++){
+          if(elem.attributes[i].type == standardTypes[j]){
+            standardTypesInclude[j] = true;
+          }
+        }
+      }
+
+      for(var i = 0; i < elem.operations.length; i++){
+        for(var j = 0; j < elem.operations[i].parameters.length; j++){
+          for(var k = 0; k < standardTypes.length; k++){
+            if(elem.operations[i].parameters[j].type == standardTypes[k]){
+              standardTypesInclude[k] = true;
+            }
+          }
+        }
+      }
+
+      // Write the include (e.g. #include <vector>  // Provides: vector)
+      var includesGenerated = false;
+      for(var i = 0; i < standardTypes.length; i++){
+        if(standardTypesInclude[i]){
+          includesGenerated = true;
+          var includeStr = "#include " + standardTypesLibraries[i];
+          var tabs = "\t";
+          if(standardTypes[i] == "set" || standardTypes[i] == "list") tabs = "\t\t";
+          if(app.preferences.get("cpp.gen.includeProvidedTypes")) includeStr += tabs + "// Provides: " + standardTypes[i];
+          codeWriter.writeLine(includeStr);
+        }
+      }
+
+      // If at least one "#include" has been generated, add a new line.
+      if(includesGenerated) codeWriter.writeLine("");
+      
+      // Write "using namespace std;" if vector, string, set or list is included
+      // And if the user option is enabled
+      var writeUsingNamespaceStd = false;
+      for(var i = 0; i < 4; i++) writeUsingNamespaceStd |= standardTypesInclude[0];
+      
+      if(writeUsingNamespaceStd && app.preferences.get("cpp.gen.addUsingNamespaceStd")) codeWriter.writeLine("using namespace std;\n");
+
+      // ======= END ==================
+    }
+
+
     funct(codeWriter, elem, this);
 
     codeWriter.writeLine();
@@ -687,6 +758,8 @@ class CppCodeGenerator {
       var methodStr = "";
       // var isVirtaul = false
       // TODO virtual fianl static 키워드는 섞어 쓸수가 없다
+      if(elem.stereotype == "inline") methodStr += "inline ";
+
       if (elem.isStatic === true) {
         methodStr += "static ";
       } else if (elem.isAbstract === true) {
@@ -702,19 +775,20 @@ class CppCodeGenerator {
       var inputParamStrings = [];
       for (i = 0; i < inputParams.length; i++) {
         var inputParam = inputParams[i];
-        inputParamStrings.push(
+        inputParamStrings.push((inputParam.isReadOnly ? "const ": "") + 
           this.getType(inputParam) + " " + inputParam.name,
         );
         docs += "\n@param " + inputParam.name + " " + inputParam.documentation;
       }
 
-      if(returnTypeParam.length > 0 && !isCppBody) docs += "\n@return " + this.getType(returnTypeParam[0]);
+      if(returnTypeParam.length > 0 && !isCppBody) docs += "\n@return " + this.getType(returnTypeParam[0]) + " " + returnTypeParam[0].documentation;
 
-      methodStr +=
-        (returnTypeParam.length > 0
-          ? this.getType(returnTypeParam[0])
-          : "void") + " ";
-
+      // If it's not a constructor/destructor (a constructor must have the same name of its class), add a return type
+      if(elem.name != elem._parent.name.replace(/\s+/g, '')){
+        if(returnTypeParam.length > 0) methodStr += (returnTypeParam[0].isReadOnly ? "const ": "");  // Add const if the return type is readOnly
+        methodStr += (returnTypeParam.length > 0 ? this.getType(returnTypeParam[0]): "void") + " ";
+      }
+      
       if (isCppBody) {
         var telem = elem;
         var specifier = "";
@@ -730,9 +804,13 @@ class CppCodeGenerator {
           indentLine += " ";
         }
 
+        if(returnTypeParam.length > 0) methodStr += (returnTypeParam[0].isReadOnly ? "const ": "");
         methodStr += specifier;
+        if(elem.stereotype == "destructor") methodStr += "~";
         methodStr += elem.name;
-        methodStr += "(" + inputParamStrings.join(", ") + ")" + "{\n";
+        methodStr += "(" + inputParamStrings.join(", ") + ")";
+        if(elem.isQuery) methodStr += " const ";
+        methodStr += "{\n";
         if (returnTypeParam.length > 0) {
           var returnType = this.getType(returnTypeParam[0]);
           if (returnType === "boolean" || returnType === "bool") {
@@ -751,14 +829,16 @@ class CppCodeGenerator {
           } else if (returnType === "string" || returnType === "String") {
             methodStr += indentLine + 'return "";';
           } else if (returnType === "void") {
-            methodStr += indentLine + "return;";
+            // We don't need this! it's unnecessary for void functions
+            //methodStr += indentLine + "return;";
           } else {
             methodStr += indentLine + "return null;";
           }
-          docs += "\n@return " + returnType;
+          docs += "\n@return " + returnType + " " + returnTypeParam[0].documentation;
         }
         methodStr += "\n}";
       } else {
+        if(elem.stereotype == "destructor") methodStr += "~";
         methodStr += elem.name;
         methodStr += "(" + inputParamStrings.join(", ") + ")";
         if (elem.isLeaf === true) {
@@ -767,13 +847,15 @@ class CppCodeGenerator {
           // TODO 만약 virtual 이면 모두 pure virtual? 체크 할것
           methodStr += " = 0";
         }
+
+        if(elem.isQuery) methodStr += " const";
         methodStr += ";";
       }
       if (isCppBody) return "\n" + this.getDocuments(docs) + methodStr;
       else {
         var doc = this.getDocuments(docs).replace(/\n/g, '\n\t\t');
         if(doc != "") {
-          if(index > 0) return "\n\t\t" + doc + methodStr;  // Add a linebreak if the doc is included (to have a better generated code)
+          if(index > 0) return "\n\t\t" + doc + methodStr;  // It adds a linebreak if the doc is included (to have a better generated code)
           else return doc + methodStr;
         }
         else return methodStr;

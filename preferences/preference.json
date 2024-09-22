@@ -18,6 +18,12 @@
       "type": "number",
       "default": 4
     },
+    "cpp.gen.useLowercaseForDirectories": {
+      "text": "Use lowercase for directories",
+      "description": "Use lowercase for directory names.",
+      "type": "check",
+      "default": false
+    },
     "cpp.gen.includeHeader": {
       "text": "Include default header",
       "description": "Include default header.",
@@ -33,6 +39,24 @@
     "cpp.gen.genCpp": {
       "text": "Generate *.cpp file",
       "description": "Generate cpp file",
+      "type": "check",
+      "default": true
+    },
+    "cpp.gen.includeCommonCppStdTypes": {
+      "text": "Generate #include for common std C++ types",
+      "description": "Generate the '#include' for common standard C++ types (e.g. string, vector, list, set, size_t)",
+      "type": "check",
+      "default": true
+    },
+    "cpp.gen.includeProvidedTypes": {
+      "text": "Generate a comment for the provided types",
+      "description": "Generate a comment for the provided types by the included C++ Standard Library.",
+      "type": "check",
+      "default": true
+    },
+    "cpp.gen.addUsingNamespaceStd": {
+      "text": "Add 'using namespace std'",
+      "description": "Add the 'using namespace std;' statement if required by the C++ standard types included.",
       "type": "check",
       "default": true
     },
