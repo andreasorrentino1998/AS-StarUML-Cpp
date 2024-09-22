@@ -4,8 +4,6 @@ This is a changed version of the C++ extension for StarUML made for my needs (ba
 "AS version" stands for "Andrea Sorrentino version".
 
 **v1.0.1**
-
-Features:
 - Support to destructors (UMLOperation with `<<destructor>>` stereotype).
 - Support to inline methods (UMLOperation with `<<inline>>` stereotype).
 - Classes/structs with `<<example>>` stereotype are not generated.
@@ -27,8 +25,6 @@ Changes:
 - Removed the `return void;` statement in methods implementations with a void return type.
 
 **v1.0.0**
-
-Features:
 - Improved code indentation.
 - Spaces removal from class names.
 - Support to different types of associations (direct association, aggregation and composition).
