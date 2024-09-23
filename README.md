@@ -19,9 +19,9 @@ This is a changed version of the C++ extension for StarUML made for my needs (ba
 Fixes:
 - Generates documentation for method return types (description was missing in v1.0.0)
 - Removed an extra space generated after "public:", "protected:", and "private:" strings.
+- Removed the `void` type from class constructors.
 
 Changes:
-- Removed the `void` type from class constructors.
 - Removed the `return void;` statement in methods implementations with a void return type.
 
 **v1.0.0**
