@@ -127,10 +127,15 @@ class CppCodeGenerator {
         modifierStr += modifierList[i] + " ";
       }
       
-      // If there are more than 5 literals, write them on a single line
-      if(elem.literals.length > 5){
-        var enumStr = "enum " + elem.name.replace(/\s+/g, '') + " {\n\t";
-        enumStr += elem.literals.map((lit) => lit.name).join(",\n\t");
+      // If there are more than 5 literals, or doc is enabled, write each literal on a separate line
+      if(elem.literals.length > 5 || app.preferences.get("cpp.gen.genDoc")){
+        var docs = cppCodeGen.getDocuments(elem.documentation) + "\n";
+        var enumStr = docs + "enum " + elem.name.replace(/\s+/g, '') + " {\n\t";
+        for(var i = 0; i < elem.literals.length; i++){
+          var literalDoc = cppCodeGen.getDocuments(elem.literals[i].documentation).replace(/\n/g, '\n\t');
+          enumStr += literalDoc + elem.literals[i].name;
+          if(i != elem.literals.length - 1) enumStr += ",\n\t";
+        }
         enumStr += "\n};";
         codeWriter.writeLine(enumStr);
       }
