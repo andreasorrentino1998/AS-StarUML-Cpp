@@ -450,16 +450,38 @@ class CppCodeGenerator {
 
     // ======= BEGIN OF INCLUDE PART ==================
     // Include some common C++ standard type used inside attributes and methods
+    // TODO: refactor this section. This is a really bad code, made to get a quick implementation of this functionality!
     if(app.preferences.get("cpp.gen.includeCommonCppStdTypes")){
-      const standardTypes = ["string", "vector", "set", "list",  "size_t", "int16_t"];
+      const standardTypes = ["string", "vector", "set", "list",  "size_t", "int16_t"];  // TODO: make it order-indipendent. Now, if you change the order, the algorithm may not work well.
       const standardTypesLibraries = ["<string>", "<vector>", "<set>", "<list>", "<stddef.h>", "<cstdint>"]
       var standardTypesInclude = [false, false, false, false, false, false];
 
       // Check if the std types are used by class attributes
       for(var i = 0; i < elem.attributes.length; i++){
         for(var j = 0; j < standardTypes.length; j++){
-          if(elem.attributes[i].type == standardTypes[j]){
-            standardTypesInclude[j] = true;
+          // Check if the attribute have "multiplicity" N
+          if(["0..*", "1..*", "*"].includes(elem.attributes[i].multiplicity.trim())) standardTypesInclude[1] = true;  // so include vector type
+          
+          if(elem.attributes[i].type instanceof type.UMLPrimitiveType){   // check if it's a UML primitive type
+            // For vector, set, list we need to check if type has a template format (e.g vector<>), otherwise these type will not be recognized.
+            if(j > 0 && j < 4){
+              if(elem.attributes[i].type.name.includes(standardTypes[j]+"<")) standardTypesInclude[j] = true;
+            }
+            else {
+              if(elem.attributes[i].type.name === standardTypes[j] || (elem.attributes[i].type.name + "*") === standardTypes[j]){ // * for pointers
+                standardTypesInclude[j] = true;
+              }
+            }
+          }
+          else{ // otherwise 'type' is string field
+            if(j > 0 && j < 4){
+              if(elem.attributes[i].type.includes(standardTypes[j]+"<")) standardTypesInclude[j] = true;
+            }
+            else{
+              if(elem.attributes[i].type === standardTypes[j] || (elem.attributes[i].type + "*") === standardTypes[j]){
+                standardTypesInclude[j] = true;
+              }
+            }
           }
         }
       }
@@ -468,8 +490,28 @@ class CppCodeGenerator {
       for(var i = 0; i < elem.operations.length; i++){
         for(var j = 0; j < elem.operations[i].parameters.length; j++){
           for(var k = 0; k < standardTypes.length; k++){
-            if(elem.operations[i].parameters[j].type == standardTypes[k]){
-              standardTypesInclude[k] = true;
+            // Check if the parameter have "multiplicity" N
+            if(["0..*", "1..*", "*"].includes(elem.operations[i].parameters[j].multiplicity.trim())) standardTypesInclude[1] = true; // so include vector type
+            
+            if(elem.operations[i].parameters[j].type instanceof type.UMLPrimitiveType){
+              if(k > 0 && k < 4){
+                if(elem.operations[i].parameters[j].type.name.includes(standardTypes[k]+"<")) standardTypesInclude[k] = true;
+              }
+              else{
+                if(elem.operations[i].parameters[j].type.name === standardTypes[k] || (elem.operations[i].parameters[j].type.name + "*") === standardTypes[k]){
+                  standardTypesInclude[k] = true;
+                }
+              }
+            }
+            else {
+              if(k > 0 && k < 4){
+                if(elem.operations[i].parameters[j].type.includes(standardTypes[k]+"<")) standardTypesInclude[k] = true;
+              }
+              else{
+                if(elem.operations[i].parameters[j].type === standardTypes[k] || (elem.operations[i].parameters[j].type + "*") === standardTypes[k]){
+                  standardTypesInclude[k] = true;
+                }
+              }
             }
           }
         }
@@ -519,11 +561,11 @@ class CppCodeGenerator {
       // Write "using namespace std;" if vector, string, set or list is included
       // And if the user option is enabled
       var writeUsingNamespaceStd = false;
-      for(var i = 0; i < 4; i++) writeUsingNamespaceStd |= standardTypesInclude[0];
+      for(var i = 0; i < 4; i++) writeUsingNamespaceStd |= standardTypesInclude[i];
       
       if(writeUsingNamespaceStd && app.preferences.get("cpp.gen.addUsingNamespaceStd")) codeWriter.writeLine("using namespace std;\n");
 
-      // ======= END ==================
+      // ======= END OF INCLUDE PART ==================
     }
 
 
