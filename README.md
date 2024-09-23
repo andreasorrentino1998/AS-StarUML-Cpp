@@ -8,8 +8,9 @@ This is a changed version of the C++ extension for StarUML made for my needs (ba
 - Support to inline methods (UMLOperation with `<<inline>>` stereotype).
 - Classes/structs with `<<example>>` stereotype are not generated.
 - Support to `const` keyword for methods, parameters and return types (`isQuery`/`isReadOnly` properties in StarUML).
-- If the struct has no method, the `.cpp` file is not generated.
+- If the struct has no methods, the `.cpp` file is not generated.
 - For enums with more than 5 elements, each literal is written on a separate line.
+- Generates documentation for enumerations.
 - Generates `#include` statements for C++ standard types used inside the defined classes/structs (`string`, `vector`, `list`, `set`, `size_t`, `int16_t`), and adds comments specifying the types provided by the included libraries. It also generates the `using namespace std;` statement if required.
 - Option to enable/disable the inclusion of libraries for C++ standard types.
 - Option to enable/disable the generation of the `using namespace std;` statement.
@@ -18,6 +19,7 @@ This is a changed version of the C++ extension for StarUML made for my needs (ba
 
 Fixes:
 - Generates documentation for method return types (description was missing in v1.0.0)
+- Correct struct members indentation when docs generation is enabled.
 - Removed an extra space generated after "public:", "protected:", and "private:" strings.
 - Removed the `void` type from class constructors.
 
