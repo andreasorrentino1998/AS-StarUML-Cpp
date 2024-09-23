@@ -129,7 +129,8 @@ class CppCodeGenerator {
       
       // If there are more than 5 literals, or doc is enabled, write each literal on a separate line
       if(elem.literals.length > 5 || app.preferences.get("cpp.gen.genDoc")){
-        var docs = cppCodeGen.getDocuments(elem.documentation) + "\n";
+        var docs = cppCodeGen.getDocuments(elem.documentation);
+        if(docs != "") docs += "\n";
         var enumStr = docs + "enum " + elem.name.replace(/\s+/g, '') + " {\n\t";
         for(var i = 0; i < elem.literals.length; i++){
           var literalDoc = cppCodeGen.getDocuments(elem.literals[i].documentation).replace(/\n/g, '\n\t');
@@ -784,6 +785,9 @@ class CppCodeGenerator {
       // The doc inside an UMLAssociation is used as doc for the member variable derived from the association
       if(elem instanceof type.UMLAssociationEnd) docs = this.getDocuments(elem._parent.documentation).replace(/\n/g, '\n\t\t');
       else docs = this.getDocuments(elem.documentation).replace(/\n/g, '\n\t\t');  // doc for a UMLAttribute
+
+      // If the elem belongs to a C struct, then remove one tab
+      if(elem._parent.stereotype === "struct") docs = docs.replace(/\n\t\t/g, '\n\t');
       
       // modifiers
       var _modifiers = this.getModifiers(elem);
@@ -811,7 +815,10 @@ class CppCodeGenerator {
         terms.push("= " + elem.defaultValue);
       }
       if(docs != ""){
-          if(index > 0) return "\n\t\t" + docs + terms.join(" ") + ";";
+          if(index > 0){
+            if(elem._parent.stereotype === "struct") return "\n\t" + docs + terms.join(" ") + ";";  // for C struct 1 tab (since it doesn't have private/public keywords)
+            else return "\n\t\t" + docs + terms.join(" ") + ";";  // for class 2 tabs
+          }
           else return docs + terms.join(" ") + ";";
       }
       return terms.join(" ") + ";";
