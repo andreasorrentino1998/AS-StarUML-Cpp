@@ -450,11 +450,12 @@ class CppCodeGenerator {
 
     // ======= BEGIN OF INCLUDE PART ==================
     // Include some common C++ standard type used inside attributes and methods
-    // TODO: actually, it doesn't include 'vector' generate from an association.
     if(app.preferences.get("cpp.gen.includeCommonCppStdTypes")){
       const standardTypes = ["string", "vector", "set", "list",  "size_t", "int16_t"];
       const standardTypesLibraries = ["<string>", "<vector>", "<set>", "<list>", "<stddef.h>", "<cstdint>"]
       var standardTypesInclude = [false, false, false, false, false, false];
+
+      // Check if the std types are used by class attributes
       for(var i = 0; i < elem.attributes.length; i++){
         for(var j = 0; j < standardTypes.length; j++){
           if(elem.attributes[i].type == standardTypes[j]){
@@ -463,6 +464,7 @@ class CppCodeGenerator {
         }
       }
 
+      // Check if the std types are used by methods parameters or as return types
       for(var i = 0; i < elem.operations.length; i++){
         for(var j = 0; j < elem.operations[i].parameters.length; j++){
           for(var k = 0; k < standardTypes.length; k++){
@@ -471,6 +473,31 @@ class CppCodeGenerator {
             }
           }
         }
+      }
+
+      // Check if class associations translate into an attribute of "vector" type
+      var associationEnds = [];
+      var associations = app.repository.getRelationshipsOf(elem,
+        function (rel) {
+          return rel instanceof type.UMLAssociation;
+        },
+      );
+      for(var i = 0; i < associations.length; i++) {
+        var asso = associations[i];
+        if (asso.end1.reference === elem && asso.end2.navigable == "navigable"){
+          associationEnds.push(asso.end2);
+        }
+        else if (asso.end2.reference === elem && asso.end1.navigable == "navigable"){
+          associationEnds.push(asso.end1);
+        }
+        else if (asso.end2.reference === elem && (asso.end2.aggregation == "shared" || asso.end2.aggregation == "composite")) {
+          associationEnds.push(asso.end1);
+        }
+      }
+      
+      for(var i = 0; i < associationEnds.length; i++){
+        // If multiplicity is 0:N, 1:N or N, it translates into a vectory type, so add vector among the used types.
+        if(["0..*", "1..*", "*"].includes(associationEnds[i].multiplicity.trim())) standardTypesInclude[1] = true;
       }
 
       // Write the include (e.g. #include <vector>  // Provides: vector)
