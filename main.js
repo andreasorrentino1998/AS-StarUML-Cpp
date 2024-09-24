@@ -36,6 +36,7 @@ function getGenOptions() {
     addUsingNamespaceStd: app.preferences.get("cpp.gen.addUsingNamespaceStd"),
     useLowercaseForDirectories: app.preferences.get("cpp.gen.useLowercaseForDirectories"),
     generateReturnStatement: app.preferences.get("cpp.gen.generateReturnStatement"),
+    useNULL: app.preferences.get("cpp.gen.useNULL"),
     genDoc: app.preferences.get("cpp.gen.genDoc"),
     genFileHeaderDoc: app.preferences.get("cpp.gen.genFileHeaderComment"),
     genOldFileHeaderDoc: app.preferences.get("cpp.gen.genOldFileHeaderComment"),

@@ -30,6 +30,12 @@
       "type": "check",
       "default": false
     },
+    "cpp.gen.useNULL": {
+      "text": "Use NULL",
+      "description": "Use NULL (C compatible) instead of nullptr.",
+      "type": "check",
+      "default": false
+    },
     "cpp.gen.includeHeader": {
       "text": "Include default header",
       "description": "Include default header.",
@@ -44,13 +50,13 @@
     },
     "cpp.gen.genCpp": {
       "text": "Generate *.cpp file",
-      "description": "Generate cpp file",
+      "description": "Generate cpp file.",
       "type": "check",
       "default": true
     },
     "cpp.gen.includeCommonCppStdTypes": {
       "text": "Generate #include for common std C++ types",
-      "description": "Generate the '#include' for common standard C++ types (e.g. string, vector, list, set, size_t)",
+      "description": "Generate the '#include' for common standard C++ types (e.g. string, vector, list, set, size_t).",
       "type": "check",
       "default": true
     },
@@ -68,19 +74,19 @@
     },
     "cpp.gen.genDoc": {
       "text": "Generate doc comments",
-      "description": "Generate doc comments",
+      "description": "Generate doc comments.",
       "type": "check",
       "default": true
     },
     "cpp.gen.genFileHeaderComment": {
       "text": "Generate file header comment",
-      "description": "Generate file header comment",
+      "description": "Generate file header comment.",
       "type": "check",
       "default": true
     },
     "cpp.gen.genOldFileHeaderComment": {
       "text": "Generate the old file header comment (v.0.9.3)",
-      "description": "Generate old file header comment",
+      "description": "Generate old file header comment.",
       "type": "check",
       "default": false
     },
@@ -90,7 +96,7 @@
     },
     "cpp.rev.association": {
       "text": "Association",
-      "description": "Reverse C++ Fields as UML Associations.",
+      "description": "Reverse C++ fields as UML associations.",
       "type": "check",
       "default": true
     },
@@ -102,19 +108,19 @@
     },
     "cpp.rev.typeHierarchy": {
       "text": "Type hierarchy diagram",
-      "description": "Create a type hierarchy diagram for all classes and interfaces",
+      "description": "Create a type hierarchy diagram for all classes and interfaces.",
       "type": "check",
       "default": true
     },
     "cpp.rev.packageOverview": {
       "text": "Package overview diagram",
-      "description": "Create overview diagram for each package",
+      "description": "Create overview diagram for each package.",
       "type": "check",
       "default": true
     },
     "cpp.rev.packageStructure": {
       "text": "Package structure diagram",
-      "description": "Create a package structure diagram for all packages",
+      "description": "Create a package structure diagram for all packages.",
       "type": "check",
       "default": true
     }

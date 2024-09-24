@@ -916,7 +916,8 @@ class CppCodeGenerator {
             } else if (returnType === "string" || returnType === "String") {
               methodStr += indentLine + 'return "";';
             } else if(returnType.includes("*")) {   // check if it's of void type
-              methodStr += indentLine + "return nullptr;";
+              if(app.preferences.get("cpp.gen.useNULL")) methodStr += indentLine + "return NULL;";
+              else methodStr += indentLine + "return nullptr;";
             }
           }
           
