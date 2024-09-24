@@ -894,27 +894,32 @@ class CppCodeGenerator {
         methodStr += "{\n";
         if (returnTypeParam.length > 0) {
           var returnType = this.getType(returnTypeParam[0]);
-          if (returnType === "boolean" || returnType === "bool") {
-            methodStr += indentLine + "return false;";
-          } else if (
-            returnType === "int" ||
-            returnType === "long" ||
-            returnType === "short" ||
-            returnType === "byte"
-          ) {
-            methodStr += indentLine + "return 0;";
-          } else if (returnType === "double" || returnType === "float") {
-            methodStr += indentLine + "return 0.0;";
-          } else if (returnType === "char") {
-            methodStr += indentLine + "return '0';";
-          } else if (returnType === "string" || returnType === "String") {
-            methodStr += indentLine + 'return "";';
-          } else if (returnType === "void") {
-            // We don't need this! it's unnecessary for void functions
-            //methodStr += indentLine + "return;";
-          } else {
-            methodStr += indentLine + "return nullptr;";
+
+          // If option is enabled, generate the return statement too
+          if(app.preferences.get("cpp.gen.generateReturnStatement")){
+            if (returnType === "boolean" || returnType === "bool") {
+              methodStr += indentLine + "return false;";
+            } else if (
+              returnType === "int" ||
+              returnType === "int16_t" ||
+              returnType === "size_t" ||
+              returnType === "unsigned" ||
+              returnType === "long" ||
+              returnType === "short" ||
+              returnType === "byte"
+            ) {
+              methodStr += indentLine + "return 0;";
+            } else if (returnType === "double" || returnType === "float") {
+              methodStr += indentLine + "return 0.0;";
+            } else if (returnType === "char") {
+              methodStr += indentLine + "return '0';";
+            } else if (returnType === "string" || returnType === "String") {
+              methodStr += indentLine + 'return "";';
+            } else if(returnType.includes("*")) {   // check if it's of void type
+              methodStr += indentLine + "return nullptr;";
+            }
           }
+          
           docs += "\n@return " + returnType + " " + returnTypeParam[0].documentation;
         }
         methodStr += "\n}";

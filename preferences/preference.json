@@ -7,13 +7,13 @@
       "type": "section"
     },
     "cpp.gen.useTab": {
-      "text": "Use Tab",
+      "text": "Use tab",
       "description": "Use Tab for indentation instead of spaces.",
       "type": "check",
       "default": false
     },
     "cpp.gen.indentSpaces": {
-      "text": "Indent Spaces",
+      "text": "Indent spaces",
       "description": "Number of spaces for indentation.",
       "type": "number",
       "default": 4
@@ -21,6 +21,12 @@
     "cpp.gen.useLowercaseForDirectories": {
       "text": "Use lowercase for directories",
       "description": "Use lowercase for directory names.",
+      "type": "check",
+      "default": false
+    },
+    "cpp.gen.generateReturnStatement": {
+      "text": "Generate return statement",
+      "description": "Generate return statement inside method implementations.",
       "type": "check",
       "default": false
     },
@@ -83,31 +89,31 @@
       "type": "section"
     },
     "cpp.rev.association": {
-      "text": "Use Association",
+      "text": "Association",
       "description": "Reverse C++ Fields as UML Associations.",
       "type": "check",
       "default": true
     },
     "cpp.rev.publicOnly": {
-      "text": "Public Only",
+      "text": "Public members only",
       "description": "Reverse public members only.",
       "type": "check",
       "default": false
     },
     "cpp.rev.typeHierarchy": {
-      "text": "Type Hierarchy Diagram",
+      "text": "Type hierarchy diagram",
       "description": "Create a type hierarchy diagram for all classes and interfaces",
       "type": "check",
       "default": true
     },
     "cpp.rev.packageOverview": {
-      "text": "Package Overview Diagram",
+      "text": "Package overview diagram",
       "description": "Create overview diagram for each package",
       "type": "check",
       "default": true
     },
     "cpp.rev.packageStructure": {
-      "text": "Package Structure Diagram",
+      "text": "Package structure diagram",
       "description": "Create a package structure diagram for all packages",
       "type": "check",
       "default": true
