@@ -6,7 +6,8 @@ This is a changed version of the C++ extension for StarUML made for my needs (ba
 **v1.0.1**
 - Support to destructors (UMLOperation with `<<destructor>>` stereotype).
 - Support to inline methods (UMLOperation with `<<inline>>` stereotype).
-- Classes/structs with `<<example>>` stereotype are not generated.
+- Support to `[in]`, `[out]` and `[in, out]` annotations for parameters documentation.
+- Support to example elements (UML elements with `<<example>>` stereotype are not generated).
 - Support to `const` keyword for methods, parameters and return types (`isQuery`/`isReadOnly` properties in StarUML).
 - If the struct has no methods, the `.cpp` file is not generated.
 - For enums with more than 5 elements, each literal is written on a separate line.
@@ -20,7 +21,7 @@ This is a changed version of the C++ extension for StarUML made for my needs (ba
 - Option to use lowercase for directory names.
 
 Fixes:
-- Generates documentation for method return types (description was missing in v1.0.0)
+- Generates documentation for method return types (description was missing in v1.0.0).
 - Correct struct members indentation when docs generation is enabled.
 - Removed an extra space generated after "public:", "protected:", and "private:" strings.
 - Removed the `void` type from class constructors.
@@ -45,7 +46,7 @@ Changes:
 - Option to enable/disable file header comment generation.
 
 Fixes:
-- Fixed indentation issues
+- Fixed indentation issues.
 - Fixed issues related to associations that were not generated.
 
 Changes:
