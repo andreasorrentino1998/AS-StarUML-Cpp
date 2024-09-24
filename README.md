@@ -15,6 +15,8 @@ This is a changed version of the C++ extension for StarUML made for my needs (ba
 - Option to enable/disable the inclusion of libraries for C++ standard types.
 - Option to enable/disable the generation of the `using namespace std;` statement.
 - Option to enable/disable comments about the types provided by the included libraries.
+- Option to enable/disable the generation of return statements inside method implementations.
+- Option to use "NULL" instead of "nullptr".
 - Option to use lowercase for directory names.
 
 Fixes:
@@ -22,6 +24,9 @@ Fixes:
 - Correct struct members indentation when docs generation is enabled.
 - Removed an extra space generated after "public:", "protected:", and "private:" strings.
 - Removed the `void` type from class constructors.
+- Return statement generation:
+  - Replaced `null` (syntactically wrong) with `nullptr`.
+  - Generates `return nullptr;` only for pointer types. Previously, this statement was generated for all the unrecognized types.
 
 Changes:
 - Removed the `return void;` statement in methods implementations with a void return type.
