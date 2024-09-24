@@ -16,7 +16,7 @@ This is a changed version of the C++ extension for StarUML made for my needs (ba
 - Option to enable/disable the generation of the `using namespace std;` statement.
 - Option to enable/disable comments about the types provided by the included libraries.
 - Option to enable/disable the generation of return statements inside method implementations.
-- Option to use "NULL" instead of "nullptr".
+- Option to use `NULL` instead of `nullptr`.
 - Option to use lowercase for directory names.
 
 Fixes:
