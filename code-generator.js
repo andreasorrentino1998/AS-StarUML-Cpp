@@ -468,7 +468,11 @@ class CppCodeGenerator {
           // Check if the attribute have "multiplicity" N
           if(["0..*", "1..*", "*"].includes(elem.attributes[i].multiplicity.trim())) standardTypesInclude[1] = true;  // so include vector type
           
-          if(elem.attributes[i].type instanceof type.UMLPrimitiveType){   // check if it's a UML primitive type
+          if(elem.attributes[i].type instanceof type.UMLPrimitiveType ||     // check if it's a UMLType
+            elem.attributes[i].type instanceof type.UMLEnumeration ||
+            elem.attributes[i].type instanceof type.UMLInterface ||
+            elem.attributes[i].type instanceof type.UMLClass
+          ){   
             // For vector, set, list we need to check if type has a template format (e.g vector<>), otherwise these type will not be recognized.
             if(j > 0 && j < 4){
               if(elem.attributes[i].type.name.includes(standardTypes[j]+"<")) standardTypesInclude[j] = true;
@@ -499,7 +503,12 @@ class CppCodeGenerator {
             // Check if the parameter have "multiplicity" N
             if(["0..*", "1..*", "*"].includes(elem.operations[i].parameters[j].multiplicity.trim())) standardTypesInclude[1] = true; // so include vector type
             
-            if(elem.operations[i].parameters[j].type instanceof type.UMLPrimitiveType){
+            var paramType = elem.operations[i].parameters[j].type;
+            if(elem.operations[i].parameters[j].type instanceof type.UMLPrimitiveType ||
+              elem.operations[i].parameters[j].type instanceof type.UMLEnumeration ||
+              elem.operations[i].parameters[j].type instanceof type.UMLInterface ||
+              elem.operations[i].parameters[j].type instanceof type.UMLClass
+            ){
               if(k > 0 && k < 4){
                 if(elem.operations[i].parameters[j].type.name.includes(standardTypes[k]+"<")) standardTypesInclude[k] = true;
               }
@@ -850,19 +859,21 @@ class CppCodeGenerator {
       var returnTypeParam = elem.parameters.filter(function (params) {
         return params.direction === "return";
       });
-      var inputParams = elem.parameters.filter(function (params) {
-        return params.direction === "in";
+      var methodParams = elem.parameters.filter(function (params) {
+        return params.direction === "in" || params.direction === "out" || params.direction === "inout";
       });
-      var inputParamStrings = [];
-      for (i = 0; i < inputParams.length; i++) {
-        var inputParam = inputParams[i];
-        inputParamStrings.push((inputParam.isReadOnly ? "const ": "") + 
-          this.getType(inputParam) + " " + inputParam.name,
-        );
-        docs += "\n@param " + inputParam.name + " " + inputParam.documentation;
+      var paramStrings = [];
+      for (i = 0; i < methodParams.length; i++) {
+        var param = methodParams[i];
+        paramStrings.push((param.isReadOnly ? "const ": "") + this.getType(param) + " " + param.name);
+        var direction = "";
+        if(param.direction === "in") direction = "[in]";
+        else if(param.direction === "out") direction = "[out]";
+        else if(param.direction === "inout") direction = "[in, out]";
+        docs += "\n@param" + direction + " " + param.name + " " + param.documentation;
       }
 
-      if(returnTypeParam.length > 0 && !isCppBody) docs += "\n@return " + this.getType(returnTypeParam[0]) + " " + returnTypeParam[0].documentation;
+      if(returnTypeParam.length > 0 && !isCppBody) docs += "\n@return " + returnTypeParam[0].documentation;
 
       // If it's not a constructor/destructor (a constructor must have the same name of its class), add a return type
       if(elem.name != elem._parent.name.replace(/\s+/g, '')){
@@ -885,11 +896,10 @@ class CppCodeGenerator {
           indentLine += " ";
         }
 
-        if(returnTypeParam.length > 0) methodStr += (returnTypeParam[0].isReadOnly ? "const ": "");
         methodStr += specifier;
         if(elem.stereotype == "destructor") methodStr += "~";
         methodStr += elem.name;
-        methodStr += "(" + inputParamStrings.join(", ") + ")";
+        methodStr += "(" + paramStrings.join(", ") + ")";
         if(elem.isQuery) methodStr += " const ";
         methodStr += "{\n";
         if (returnTypeParam.length > 0) {
@@ -921,13 +931,13 @@ class CppCodeGenerator {
             }
           }
           
-          docs += "\n@return " + returnType + " " + returnTypeParam[0].documentation;
+          docs += "\n@return " + returnTypeParam[0].documentation;
         }
         methodStr += "\n}";
       } else {
         if(elem.stereotype == "destructor") methodStr += "~";
         methodStr += elem.name;
-        methodStr += "(" + inputParamStrings.join(", ") + ")";
+        methodStr += "(" + paramStrings.join(", ") + ")";
         if (elem.isLeaf === true) {
           methodStr += " final";
         } else if (elem.isAbstract === true) {
