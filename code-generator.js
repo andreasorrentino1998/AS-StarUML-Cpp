@@ -913,7 +913,7 @@ class CppCodeGenerator {
             // We don't need this! it's unnecessary for void functions
             //methodStr += indentLine + "return;";
           } else {
-            methodStr += indentLine + "return null;";
+            methodStr += indentLine + "return nullptr;";
           }
           docs += "\n@return " + returnType + " " + returnTypeParam[0].documentation;
         }
