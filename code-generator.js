@@ -563,8 +563,8 @@ class CppCodeGenerator {
         if(standardTypesInclude[i]){
           includesGenerated = true;
           var includeStr = "#include " + standardTypesLibraries[i];
-          var tabs = "\t";
-          if(standardTypes[i] == "set" || standardTypes[i] == "list") tabs = "\t\t";
+          var tabs = "\t\t";
+          //if(standardTypes[i] == "set" || standardTypes[i] == "list") tabs = "\t\t";
           if(app.preferences.get("cpp.gen.includeProvidedTypes")) includeStr += tabs + "// Provides: " + standardTypes[i];
           codeWriter.writeLine(includeStr);
         }
@@ -607,6 +607,19 @@ class CppCodeGenerator {
     }
     codeWriter.writeLine('#include "' + elem.name.replace(/\s+/g, '_').toLowerCase() + '.h"');
     
+    // Generates static members redefinitions
+    var firstStaticMember = true;
+    for(var i = 0; i < elem.attributes.length; i++){
+      var attribute = elem.attributes[i];
+      if(attribute.isStatic === true){
+        if(firstStaticMember){
+          codeWriter.writeLine(""); // add a new empty line
+          firstStaticMember = false;
+        }
+        codeWriter.writeLine((attribute.isReadOnly ? "const ": "") + this.getType(attribute) + " " + elem.name.replace(/\s+/g, '') + "::" + attribute.name + ";");
+      }
+    }
+
     funct(codeWriter, elem, this);
     return codeWriter.getData();
   }
@@ -851,7 +864,7 @@ class CppCodeGenerator {
       if(elem.stereotype == "inline") methodStr += "inline ";
 
       if (elem.isStatic === true) {
-        methodStr += "static ";
+        if(!isCppBody) methodStr += "static ";  // static method implementation doesn't require the keyword "static"
       } else if (elem.isAbstract === true) {
         methodStr += "virtual ";
       }
@@ -890,12 +903,8 @@ class CppCodeGenerator {
           telem = telem._parent;
         }
 
-        var indentLine = "";
-
-        for (i = 0; i < this.genOptions.indentSpaces; i++) {
-          indentLine += " ";
-        }
-
+        var indentLine = "\t";
+        
         methodStr += specifier;
         if(elem.stereotype == "destructor") methodStr += "~";
         methodStr += elem.name;
@@ -925,10 +934,11 @@ class CppCodeGenerator {
               methodStr += indentLine + "return '0';";
             } else if (returnType === "string" || returnType === "String") {
               methodStr += indentLine + 'return "";';
-            } else if(returnType.includes("*")) {   // check if it's of void type
+            } else if(returnType.includes("*")) {   // check if it's of pointer type
               if(app.preferences.get("cpp.gen.useNULL")) methodStr += indentLine + "return NULL;";
               else methodStr += indentLine + "return nullptr;";
             }
+            else methodStr += indentLine;   // for void & unrecognized types, just indent
           }
           
           docs += "\n@return " + returnTypeParam[0].documentation;
